@@ -3,19 +3,21 @@
   hosts: app
   become: true
   tasks:
-    - name: Install JDK
-      yum:
-        name: java-11-openjdk
+    - name: Install JDK 11
+      package:
+        name: "{{ 'java-11-openjdk' if ansible_os_family == 'RedHat' else 'openjdk-11-jdk' }}"
         state: present
+        update_cache: yes
 
 - name: Install Nginx on Web Node
   hosts: web
   become: true
   tasks:
     - name: Install Nginx
-      yum:
+      package:
         name: nginx
         state: present
+        update_cache: yes
     - name: Ensure Nginx is running
       service:
         name: nginx
