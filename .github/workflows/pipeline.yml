@@ -1,0 +1,70 @@
+name: Deploy Infrastructure & Configure with Ansible
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+
+jobs:
+  terraform-and-ansible:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-1   # or use your variable
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ./terraform
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+        working-directory: ./terraform
+
+      - name: Capture Terraform outputs
+        id: tf-outputs
+        run: |
+          echo "JAVA_IP=$(terraform output -raw java_node_ip)" >> $GITHUB_OUTPUT
+          echo "NGINX_IP=$(terraform output -raw nginx_node_ip)" >> $GITHUB_OUTPUT
+        working-directory: ./terraform
+
+      - name: Create dynamic inventory
+        run: |
+          mkdir -p inventories
+          cat > inventories/dev.ini <<EOF
+          [web]
+          ${{ steps.tf-outputs.outputs.NGINX_IP }}
+
+          [app]
+          ${{ steps.tf-outputs.outputs.JAVA_IP }}
+          EOF
+          echo "Generated inventory:"
+          cat inventories/dev.ini
+
+      - name: Install Ansible
+        run: |
+          sudo apt update
+          sudo apt install -y ansible
+
+      - name: Set up SSH key
+        run: |
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > /tmp/ansible_key.pem
+          chmod 400 /tmp/ansible_key.pem
+
+      - name: Run Ansible playbook
+        run: |
+          ansible-playbook -i inventories/dev.ini playbook.yml \
+            --private-key /tmp/ansible_key.pem \
+            -u ec2-user
