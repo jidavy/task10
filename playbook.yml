@@ -1,0 +1,22 @@
+---
+- name: Install JDK on Java Node
+  hosts: app
+  become: true
+  tasks:
+    - name: Install JDK
+      yum:
+        name: java-11-openjdk
+        state: present
+
+- name: Install Nginx on Web Node
+  hosts: web
+  become: true
+  tasks:
+    - name: Install Nginx
+      yum:
+        name: nginx
+        state: present
+    - name: Ensure Nginx is running
+      service:
+        name: nginx
+        state: started
