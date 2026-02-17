@@ -93,15 +93,6 @@ resource "aws_instance" "nginx_node" {
   tags = { Name = "Nginx Node" }
 }
 
-# 3. Ansible Server
-resource "aws_instance" "ansible_server" {
-  ami                    = var.ami_id
-  instance_type          = var.instance_type
-  key_name               = var.key_name
-  vpc_security_group_ids = [aws_security_group.jigzy_sg.id]
-
-  tags = { Name = "Ansible Server" }
-}
 
 #-------------------------------------
 # OUTPUTS (Optional but helpful)
@@ -113,8 +104,4 @@ output "java_node_ip" {
 
 output "nginx_node_ip" {
   value = aws_instance.nginx_node.public_ip
-}
-
-output "ansible_server_ip" {
-  value = aws_instance.ansible_server.public_ip
 }
