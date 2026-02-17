@@ -53,6 +53,12 @@ jobs:
           echo "Generated inventory:"
           cat inventories/dev.ini
 
+      - name: List files for debugging
+        run: |
+          pwd
+          ls -la
+          ls -la playbook.yml || echo "playbook.yml MISSING"
+
       - name: Install Ansible
         run: |
           sudo apt update
