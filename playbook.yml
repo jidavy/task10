@@ -3,21 +3,56 @@
   hosts: app
   become: true
   tasks:
-    - name: Install JDK 11
+    - name: Install JDK 11 (RedHat family)
       package:
-        name: "{{ 'java-11-openjdk' if ansible_os_family == 'RedHat' else 'openjdk-11-jdk' }}"
+        name: java-11-openjdk
         state: present
         update_cache: yes
+      when: ansible_os_family == "RedHat"
+      register: java11_install
+      ignore_errors: yes
+
+    - name: Fallback to JDK 8 if JDK 11 failed (RedHat)
+      package:
+        name: java-1.8.0-openjdk
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "RedHat" and java11_install.failed
+
+    - name: Install JDK 11 (Debian/Ubuntu)
+      package:
+        name: openjdk-11-jdk
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+      register: java11_deb_install
+      ignore_errors: yes
+
+    - name: Fallback to JDK 8 if JDK 11 failed (Debian)
+      package:
+        name: openjdk-8-jdk
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "Debian" and java11_deb_install.failed
 
 - name: Install Nginx on Web Node
   hosts: web
   become: true
   tasks:
-    - name: Install Nginx
+    - name: Install Nginx (RedHat)
       package:
         name: nginx
         state: present
         update_cache: yes
+      when: ansible_os_family == "RedHat"
+
+    - name: Install Nginx (Debian)
+      package:
+        name: nginx
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
     - name: Ensure Nginx is running
       service:
         name: nginx
